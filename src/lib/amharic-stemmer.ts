@@ -107,24 +107,124 @@ const DEFAULT_OPTIONS: Required<StemOptions> = {
   minStemLength: 2,
   debug: false
 };
-
 const STOP_WORDS = new Set([
+  // Pronouns
   "እኔ",
   "አንተ",
   "አንቺ",
   "እሱ",
   "እሷ",
   "እኛ",
+  "እናንተ",
   "እነሱ",
+  "እነዚህ",
+  "እነዚያ",
+  "ይህ",
+  "ይሄ",
+  "ያ",
+  "ያች",
+  "እሱን",
+  "እሷን",
+
+  // Common copula / auxiliary forms
   "ነው",
   "ናት",
   "ናቸው",
+  "ነኝ",
+  "ነህ",
+  "ነሽ",
+  "ነን",
+  "ናችሁ",
   "ነበር",
+  "ነበሩ",
+  "ነበረ",
+  "ነበረች",
+  "ነበርኩ",
+  "ነበርን",
+
+  // Conjunctions
   "እና",
   "ግን",
   "ወይም",
+  "ወይ",
+  "ነገር",
+  "ግን",
+  "እንጂ",
+  "ሆኖም",
+  "ቢሆንም",
+
+  // Preposition-like / relation words
   "ስለ",
-  "ውስጥ"
+  "ስለዚህ",
+  "በ",
+  "ለ",
+  "ከ",
+  "ወደ",
+  "እንደ",
+  "ውስጥ",
+  "ውጭ",
+  "ላይ",
+  "በታች",
+  "ፊት",
+  "ኋላ",
+  "መካከል",
+  "ጋር",
+  "አጠገብ",
+
+  // Question words
+  "ማን",
+  "ምን",
+  "መቼ",
+  "የት",
+  "ለምን",
+  "እንዴት",
+  "ስንት",
+  "የቱ",
+  "የትኛው",
+
+  // Common particles / discourse words
+  "እሺ",
+  "አዎ",
+  "አይ",
+  "እባክህ",
+  "እባክሽ",
+  "እባካችሁ",
+  "እንግዲህ",
+  "እንዲሁ",
+  "እንዲሁም",
+  "ብቻ",
+  "እንኳን",
+  "እንኳ",
+  "ደግሞ",
+  "እንደገና",
+
+  // Time/common adverbs
+  "ዛሬ",
+  "ነገ",
+  "ትናንት",
+  "አሁን",
+  "በኋላ",
+  "በፊት",
+  "ቀድሞ",
+  "ሁልጊዜ",
+  "አንዳንድ",
+  "አንድ",
+  "ሁለት",
+
+  // Quantifier/general words
+  "ሁሉ",
+  "ሁሉም",
+  "ብዙ",
+  "ጥቂት",
+  "አብዛኛው",
+  "አንዱ",
+  "ሌላ",
+  "ሌሎች",
+
+  // Common negation-related particles
+  "አይደለም",
+  "አይደሉም",
+  "አይደለችም"
 ]);
 
 const prepositionPrefixes = ["ወደ", "እንደ", "የ", "ለ", "በ", "ከ"];
@@ -334,6 +434,15 @@ function isLikelyVerbSurface(normalizedWord: string): boolean {
   );
 }
 
+function hasProtectedPossessiveEnding(normalizedWord: string): boolean {
+  return (
+    PLURAL_POSSESSIVE_RULES.some(({ ending }) => normalizedWord.endsWith(ending)) ||
+    POSSESSIVE_RULES.some(({ ending }) => normalizedWord.endsWith(ending)) ||
+    normalizedWord.endsWith("አችን") ||
+    normalizedWord.endsWith("ችን")
+  );
+}
+
 function cloneFeatures(features: StemFeatures): StemFeatures {
   return { ...features };
 }
@@ -495,6 +604,12 @@ function tryRemoveObjectSuffix(
   features: StemFeatures
 ): { next: string; applied: boolean } {
   if (!normalizedWord.endsWith("ን")) {
+    return { next: word, applied: false };
+  }
+
+  // Possessive endings like ችን and plural-possessive forms like ቶቻችን
+  // should be handled by their dedicated rules, not mistaken for object marking.
+  if (hasProtectedPossessiveEnding(normalizedWord)) {
     return { next: word, applied: false };
   }
 

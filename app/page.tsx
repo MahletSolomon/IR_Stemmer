@@ -1,4 +1,4 @@
-import { AmharicStemmerDemo } from "@/app/components/amharic-stemmer-demo";
+import { AmharicStemmerDemo } from "./components/amharic-stemmer-demo";
 
 export default function HomePage() {
   return (
