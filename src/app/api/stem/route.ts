@@ -7,6 +7,8 @@ type StemApiRequest = {
   normalize?: unknown;
   removePrefixes?: unknown;
   removeSuffixes?: unknown;
+  handleNegation?: unknown;
+  preserveNegationFeature?: unknown;
   minStemLength?: unknown;
 };
 
@@ -28,6 +30,8 @@ export async function POST(request: NextRequest) {
     normalize: body.normalize !== false,
     removePrefixes: body.removePrefixes !== false,
     removeSuffixes: body.removeSuffixes !== false,
+    handleNegation: body.handleNegation !== false,
+    preserveNegationFeature: body.preserveNegationFeature !== false,
     minStemLength:
       typeof body.minStemLength === "number" && body.minStemLength > 0
         ? body.minStemLength
@@ -36,19 +40,19 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     results: stemText(body.text, options),
-    meta: {
-      algorithm: "Level 2 Simplified Alemayehu-Style Amharic Light Stemmer",
-      features: [
-        "normalization",
-        "stacked prefix stripping",
-        "plural possessive recoding",
-        "object suffix stripping",
-        "possessive suffix handling",
-        "plural recoding",
-        "negation wrapper handling",
-        "limited verb suffix stripping"
-      ],
-      rules: getStemmerRules()
-    }
+      meta: {
+        algorithm: "Level 2 Simplified Alemayehu-Style Amharic Light Stemmer",
+        features: [
+          "normalization",
+          "prefix stripping",
+          "object suffix stripping",
+          "plural recoding",
+          "plural possessive recoding",
+          "possessive suffix handling",
+          "feature-preserving negation handling",
+          "limited verb suffix stripping"
+        ],
+        rules: getStemmerRules()
+      }
   });
 }

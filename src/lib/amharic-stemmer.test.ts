@@ -22,6 +22,36 @@ export function runAmharicStemmerSampleTests(): void {
   for (const [input, expected] of CASES) {
     assert.equal(stemWord(input), expected, `Expected "${input}" to stem to "${expected}".`);
   }
+
+  assert.equal(
+    stemWordDetailed("አልሰበረም", { debug: true }).features.negated,
+    true,
+    "Expected negation to be preserved as a feature."
+  );
+
+  const pluralPossessive = stemWordDetailed("ቤቶቻችን", { debug: true });
+  assert.equal(
+    pluralPossessive.features.plural,
+    true,
+    "Expected plural-possessive forms to preserve plural=true."
+  );
+  assert.equal(
+    pluralPossessive.features.possessive,
+    true,
+    "Expected plural-possessive forms to preserve possessive=true."
+  );
+
+  const objectMarked = stemWordDetailed("ቤቶችን", { debug: true });
+  assert.equal(
+    objectMarked.features.objectMarked,
+    true,
+    "Expected object-marked forms to preserve objectMarked=true."
+  );
+  assert.equal(
+    objectMarked.features.plural,
+    true,
+    "Expected plural forms to preserve plural=true."
+  );
 }
 
 export function logAmharicStemmerSampleDebug(): void {
