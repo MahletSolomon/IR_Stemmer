@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getStemmerRules, stemText } from "@/lib/amharic-stemmer";
+
+type StemApiRequest = {
+  text?: unknown;
+  debug?: unknown;
+  normalize?: unknown;
+  removePrefixes?: unknown;
+  removeSuffixes?: unknown;
+  minStemLength?: unknown;
+};
+
+export async function POST(request: NextRequest) {
+  let body: StemApiRequest;
+
+  try {
+    body = (await request.json()) as StemApiRequest;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  }
+
+  if (typeof body.text !== "string") {
+    return NextResponse.json({ error: "`text` must be a string." }, { status: 400 });
+  }
+
+  const options = {
+    debug: body.debug === true,
+    normalize: body.normalize !== false,
+    removePrefixes: body.removePrefixes !== false,
+    removeSuffixes: body.removeSuffixes !== false,
+    minStemLength:
+      typeof body.minStemLength === "number" && body.minStemLength > 0
+        ? body.minStemLength
+        : 2
+  };
+
+  return NextResponse.json({
+    results: stemText(body.text, options),
+    meta: {
+      algorithm: "Level 2 Simplified Alemayehu-Style Amharic Light Stemmer",
+      features: [
+        "normalization",
+        "stacked prefix stripping",
+        "plural possessive recoding",
+        "object suffix stripping",
+        "possessive suffix handling",
+        "plural recoding",
+        "negation wrapper handling",
+        "limited verb suffix stripping"
+      ],
+      rules: getStemmerRules()
+    }
+  });
+}
