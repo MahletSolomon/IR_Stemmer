@@ -14,6 +14,8 @@ export type StemFeatures = {
   possessive?: boolean;
   objectMarked?: boolean;
   normalized?: boolean;
+  reiterative?: boolean;
+  reduplicativeAdjective?: boolean;
 };
 
 export type StemResult = {
@@ -37,6 +39,7 @@ type RuleCategory =
   | "SUFFIX"
   | "POSSESSIVE_SUFFIX"
   | "OBJECT_SUFFIX"
+  | "REDUPLICATIVE_ADJECTIVE"
   | "PLURAL_RECODE"
   | "PLURAL_POSSESSIVE_RECODE"
   | "NEGATION"
@@ -89,9 +92,11 @@ export type StemmerRules = {
     verbPrefixes: string[];
   };
   suffixes: string[];
+  objectSuffixBaseEndings: string[];
   pluralRecodingRules: PluralRule[];
   pluralPossessiveRecodingRules: PluralPossessiveRule[];
   possessiveRules: PossessiveRule[];
+  reduplicativeAdjectiveMap: Record<string, string>;
   stopWords: string[];
   maxIterations: number;
   maxPrefixRemovals: number;
@@ -246,6 +251,18 @@ const PLURAL_RULES: PluralRule[] = [
   { ending: "ዮች", replacement: "" }
 ];
 
+const OBJECT_SUFFIX_BASE_ENDINGS = [
+  "ቶች",
+  "ፎች",
+  "ሞች",
+  "ሮች",
+  "ሎች",
+  "ኖች",
+  "ዎች",
+  "ዮች",
+  "ኦች"
+] as const;
+
 const PLURAL_POSSESSIVE_RULES: PluralPossessiveRule[] = [
   { ending: "ቶቻችን", replacement: "ት" },
   { ending: "ፎቻችን", replacement: "ፍ" },
@@ -283,14 +300,13 @@ const GENERIC_SUFFIXES: GenericSuffixRule[] = [
   { ending: "ዋን" },
   { ending: "ነት" },
   { ending: "ኛ" },
-  { ending: "ን" },
   { ending: "ው" },
   { ending: "ዋ" },
   { ending: "ች" },
   { ending: "ም" }
 ];
 
-const VERB_SUFFIXES = ["አል", "ል", "ች", "ኩ", "ን", "ህ", "ሽ"];
+const VERB_SUFFIXES = ["አል", "ች", "ኩ", "ን", "ህ", "ሽ"];
 
 const MAX_SUFFIX_ITERATIONS = 5;
 const MAX_PREFIX_REMOVALS = 2;
@@ -336,6 +352,28 @@ const NORMALIZATION_MAP: Record<string, string> = {
   ፄ: "ጼ",
   ፅ: "ጽ",
   ፆ: "ጾ"
+};
+
+const A_ORDER_TO_SIXTH_ORDER: Record<string, string> = {
+  ላ: "ል",
+  ማ: "ም",
+  ራ: "ር",
+  ሳ: "ስ",
+  ሻ: "ሽ",
+  ቃ: "ቅ",
+  ባ: "ብ",
+  ታ: "ት",
+  ቻ: "ች",
+  ና: "ን",
+  ካ: "ክ",
+  ዳ: "ድ",
+  ጃ: "ጅ",
+  ጋ: "ግ",
+  ጣ: "ጥ",
+  ጫ: "ጭ",
+  ጳ: "ጵ",
+  ጻ: "ጽ",
+  ፋ: "ፍ"
 };
 
 function mergeOptions(options?: StemOptions): Required<StemOptions> {
@@ -438,9 +476,17 @@ function hasProtectedPossessiveEnding(normalizedWord: string): boolean {
   return (
     PLURAL_POSSESSIVE_RULES.some(({ ending }) => normalizedWord.endsWith(ending)) ||
     POSSESSIVE_RULES.some(({ ending }) => normalizedWord.endsWith(ending)) ||
-    normalizedWord.endsWith("አችን") ||
-    normalizedWord.endsWith("ችን")
+    normalizedWord.endsWith("አችን")
   );
+}
+
+function hasObjectMarkedPluralBase(normalizedWord: string): boolean {
+  if (!normalizedWord.endsWith("ን")) {
+    return false;
+  }
+
+  const base = normalizedWord.slice(0, -1);
+  return OBJECT_SUFFIX_BASE_ENDINGS.some((ending) => base.endsWith(ending));
 }
 
 function cloneFeatures(features: StemFeatures): StemFeatures {
@@ -595,6 +641,45 @@ function tryHandleNegation(
   return inner;
 }
 
+function tryHandleReduplicativeAdjective(
+  word: string,
+  normalizedWord: string,
+  minStemLength: number,
+  steps: string[],
+  debug: boolean,
+  features: StemFeatures
+): string {
+  const chars = Array.from(normalizedWord);
+
+  // Keep this conservative for presentation purposes: only handle 4-fidel forms.
+  if (chars.length !== 4) {
+    return word;
+  }
+
+  const [first, second, third, fourth] = chars;
+  const expectedThird = A_ORDER_TO_SIXTH_ORDER[second];
+
+  if (!expectedThird || expectedThird !== third) {
+    return word;
+  }
+
+  const next = `${first}${third}${fourth}`;
+  if (next.length < minStemLength) {
+    return word;
+  }
+
+  features.reduplicativeAdjective = true;
+  features.plural = true;
+  recordStep(
+    steps,
+    debug,
+    "REDUPLICATIVE_ADJECTIVE",
+    `reduced ${word} -> ${next}`
+  );
+
+  return next;
+}
+
 function tryRemoveObjectSuffix(
   word: string,
   normalizedWord: string,
@@ -604,6 +689,10 @@ function tryRemoveObjectSuffix(
   features: StemFeatures
 ): { next: string; applied: boolean } {
   if (!normalizedWord.endsWith("ን")) {
+    return { next: word, applied: false };
+  }
+
+  if (!hasObjectMarkedPluralBase(normalizedWord)) {
     return { next: word, applied: false };
   }
 
@@ -957,6 +1046,25 @@ function analyzeWord(word: string, options?: StemOptions): StemResult {
     normalizedCurrent = normalizedForLookup(current, settings.normalize);
   }
 
+  current = tryHandleReduplicativeAdjective(
+    current,
+    normalizedCurrent,
+    settings.minStemLength,
+    baseSteps,
+    settings.debug,
+    features
+  );
+  normalizedCurrent = normalizedForLookup(current, settings.normalize);
+
+  if (features.reduplicativeAdjective) {
+    return {
+      original,
+      stem: current,
+      steps: baseSteps,
+      features
+    };
+  }
+
   const prefixSeed = applyPrefixRemovals(
     current,
     normalizedCurrent,
@@ -1034,9 +1142,11 @@ export function getStemmerRules(): StemmerRules {
       verbPrefixes
     },
     suffixes: GENERIC_SUFFIXES.map((rule) => rule.ending),
+    objectSuffixBaseEndings: [...OBJECT_SUFFIX_BASE_ENDINGS],
     pluralRecodingRules: PLURAL_RULES,
     pluralPossessiveRecodingRules: PLURAL_POSSESSIVE_RULES,
     possessiveRules: POSSESSIVE_RULES,
+    reduplicativeAdjectiveMap: { ...A_ORDER_TO_SIXTH_ORDER },
     stopWords: [...STOP_WORDS],
     maxIterations: MAX_SUFFIX_ITERATIONS,
     maxPrefixRemovals: MAX_PREFIX_REMOVALS,

@@ -2,8 +2,15 @@ import { strict as assert } from "node:assert";
 import { stemText, stemWord, stemWordDetailed } from "@/lib/amharic-stemmer";
 
 const CASES: Array<[string, string]> = [
+  ["ቀጫጭን", "ቀጭን"],
+  ["ረጃጅም", "ረጅም"],
+  ["አጫጭር", "አጭር"],
+  ["ትላልቅ", "ትልቅ"],
+  ["ትናንሽ", "ትንሽ"],
+  ["ቀጭን", "ቀጭን"],
   ["ቤቶችን", "ቤት"],
   ["መጽሐፎችን", "መጽሐፍ"],
+  ["መኪናዎችን", "መኪና"],
   ["የተማሪዎች", "ተማሪ"],
   ["መኪናዎች", "መኪና"],
   ["ትምህርትነት", "ትምህርት"],
@@ -51,6 +58,35 @@ export function runAmharicStemmerSampleTests(): void {
     objectMarked.features.plural,
     true,
     "Expected plural forms to preserve plural=true."
+  );
+
+  const plainFinalNun = stemWordDetailed("ቀጭን", { debug: true });
+  assert.equal(
+    plainFinalNun.stem,
+    "ቀጭን",
+    "Expected plain lexical final ን to remain untouched."
+  );
+  assert.equal(
+    plainFinalNun.steps.some((step) => step.includes("[OBJECT_SUFFIX]")),
+    false,
+    "Expected no object suffix step for plain lexical final ን."
+  );
+
+  const reduplicativeAdjective = stemWordDetailed("ቀጫጭን", { debug: true });
+  assert.equal(
+    reduplicativeAdjective.stem,
+    "ቀጭን",
+    "Expected reduplicative adjective forms to reduce to the base adjective."
+  );
+  assert.equal(
+    reduplicativeAdjective.features.reduplicativeAdjective,
+    true,
+    "Expected reduplicative adjective feature to be preserved."
+  );
+  assert.equal(
+    reduplicativeAdjective.features.plural,
+    true,
+    "Expected reduplicative adjective reduction to preserve plural=true."
   );
 }
 

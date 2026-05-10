@@ -10,10 +10,9 @@ import {
 
 const DEFAULT_TEXT = "ቤቶችን የተማሪዎች መኪናዎች";
 const DEFAULT_NOTE =
-  "This is a simplified Amharic light stemmer. It normalizes Amharic spelling variants, removes safe prefixes and suffixes, handles object markers, plural recoding, possessive endings, plural-possessive forms, and simple negation wrappers. Negation is preserved as a feature because it changes meaning. The stemmer includes a conservative reduplicative adjective rule. For forms like ቀጫጭን, it reduces the repeated adjective pattern back to the base adjective ቀጭን. This is not full root extraction; it is a surface-level rule for common adjective patterns. The stemmer does not perform full root extraction, complete morphological analysis, or dictionary-based citation-form disambiguation.";
+  "This is a simplified Amharic light stemmer. It normalizes Amharic spelling variants, removes safe prefixes and suffixes, handles object markers, plural recoding, possessive endings, plural-possessive forms, and simple negation wrappers. Negation is preserved as a feature because it changes meaning. The stemmer does not perform full root extraction, complete morphological analysis, or dictionary-based citation-form disambiguation.";
 
 const EXAMPLES = [
-  "ቀጫጭን",
   "ቤቶችን",
   "መጽሐፎችን",
   "የተማሪዎች",
@@ -42,9 +41,7 @@ const FEATURE_ORDER: Array<keyof StemFeatures> = [
   "plural",
   "possessive",
   "objectMarked",
-  "normalized",
-  "reiterative",
-  "reduplicativeAdjective"
+  "normalized"
 ];
 
 function formatRulePairs(
@@ -57,12 +54,6 @@ function formatRulePairs(
 
 function formatFeatureLabels(features: StemFeatures): string[] {
   return FEATURE_ORDER.filter((key) => features[key]).map((key) => key);
-}
-
-function formatMappingPairs(map: Record<string, string>): string {
-  return Object.entries(map)
-    .map(([from, to]) => `${from} -> ${to}`)
-    .join(" · ");
 }
 
 export function AmharicStemmerDemo({
@@ -101,10 +92,6 @@ export function AmharicStemmerDemo({
         value: rules.suffixes.join(", ")
       },
       {
-        title: "Object suffix bases",
-        value: rules.objectSuffixBaseEndings.join(", ")
-      },
-      {
         title: "Plural recoding",
         value: formatRulePairs(rules.pluralRecodingRules)
       },
@@ -115,10 +102,6 @@ export function AmharicStemmerDemo({
       {
         title: "Possessives",
         value: formatRulePairs(rules.possessiveRules)
-      },
-      {
-        title: "Reduplicative adjective map",
-        value: formatMappingPairs(rules.reduplicativeAdjectiveMap)
       },
       {
         title: "Stop words",
@@ -280,7 +263,7 @@ export function AmharicStemmerDemo({
                       Stem
                     </th>
                     <th className="px-6 py-5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                      Features
+                      Rule count
                     </th>
                     <th className="px-6 py-5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                       Steps
@@ -288,78 +271,77 @@ export function AmharicStemmerDemo({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/80">
-                  {hasResults ? (
-                    results.map((result, index) => {
-                      const featureLabels = formatFeatureLabels(result.features);
-
-                      return (
-                        <Fragment key={`${result.original}-${index}`}>
-                          <tr className="align-top">
-                            <td className="px-6 py-5 text-lg font-medium text-slate-950">
-                              {result.original}
-                            </td>
-                            <td className="px-6 py-5 text-lg font-semibold text-emerald-800">
-                              {result.stem}
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex flex-wrap gap-2">
-                                {featureLabels.length ? (
-                                  featureLabels.map((feature) => (
-                                    <span
-                                      key={feature}
-                                      className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800"
-                                    >
-                                      {feature}
-                                    </span>
-                                  ))
-                                ) : (
-                                  <span className="text-sm text-slate-500">-</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-sm text-slate-500">
-                              {result.steps.length ? "Collapsed below" : "No debug steps"}
-                            </td>
-                          </tr>
-                          <tr className="align-top">
-                            <td className="px-6 pb-6 pt-0" colSpan={4}>
-                              {result.steps.length ? (
-                                <details className="group">
-                                  <summary className="flex list-none cursor-pointer items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
-                                    <span>Steps</span>
-                                    <span className="text-slate-500 group-open:hidden">
-                                      Expand to inspect
-                                    </span>
-                                    <span className="hidden text-slate-500 group-open:inline">
-                                      Collapse
-                                    </span>
-                                  </summary>
-                                  <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                                    <ul className="space-y-2 text-sm leading-6 text-slate-700">
-                                      {result.steps.map((step, stepIndex) => (
-                                        <li
-                                          key={`${result.original}-${stepIndex}`}
-                                          className="rounded-xl bg-slate-50 px-3 py-2"
-                                        >
-                                          {step}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                </details>
+              {hasResults ? (
+                    results.map((result, index) => (
+                      <Fragment key={`${result.original}-${index}`}>
+                        <tr className="align-top">
+                          <td className="px-6 py-5 text-lg font-medium text-slate-950">
+                            {result.original}
+                          </td>
+                          <td className="px-6 py-5 text-lg font-semibold text-emerald-800">
+                            {result.stem}
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-wrap gap-2">
+                              {formatFeatureLabels(result.features).length ? (
+                                formatFeatureLabels(result.features).map((feature) => (
+                                  <span
+                                    key={feature}
+                                    className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800"
+                                  >
+                                    {feature}
+                                  </span>
+                                ))
                               ) : (
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                                  No debug steps.
-                                </div>
+                                <span className="text-sm text-slate-500">—</span>
                               )}
-                            </td>
-                          </tr>
-                        </Fragment>
-                      );
-                    })
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-sm text-slate-500">
+                            {result.steps.length ? "Collapsed below" : "No debug steps"}
+                          </td>
+                        </tr>
+                        <tr className="align-top">
+                          <td className="px-6 pb-6 pt-0" colSpan={4}>
+                            {result.steps.length ? (
+                              <details className="group">
+                                <summary className="flex list-none cursor-pointer items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+                                  <span>Steps</span>
+                                  <span className="text-slate-500 group-open:hidden">
+                                    Expand to inspect
+                                  </span>
+                                  <span className="hidden text-slate-500 group-open:inline">
+                                    Collapse
+                                  </span>
+                                </summary>
+                                <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                                  <ul className="space-y-2 text-sm leading-6 text-slate-700">
+                                    {result.steps.map((step, stepIndex) => (
+                                      <li
+                                        key={`${result.original}-${stepIndex}`}
+                                        className="rounded-xl bg-slate-50 px-3 py-2"
+                                      >
+                                        {step}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </details>
+                            ) : (
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                                No debug steps.
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      </Fragment>
+                    ))
                   ) : (
                     <tr>
-                      <td className="px-6 py-8 text-sm text-slate-500" colSpan={4}>
+                      <td
+                        className="px-6 py-8 text-sm text-slate-500"
+                        colSpan={4}
+                      >
                         Enter Amharic text and run the stemmer to inspect results.
                       </td>
                     </tr>
@@ -384,37 +366,8 @@ export function AmharicStemmerDemo({
               <span className="pt-2 text-sm text-slate-500">Collapsed by default</span>
             </summary>
 
-            <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 px-5 py-5">
-                <h3 className="text-lg font-semibold text-slate-950">Rule explanation</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
-                  {note ?? DEFAULT_NOTE}
-                </p>
-                <div className="mt-4 grid gap-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                    <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Object suffix rule
-                    </h4>
-                    <p className="mt-3 text-sm leading-7 text-slate-600">
-                      Final <code>ን</code> is treated conservatively. It is removed as an
-                      object marker only when the base before it already looks like a plural
-                      noun, such as <code>ቤቶችን</code> or <code>መኪናዎችን</code>. Words
-                      like <code>ቀጭን</code> are left intact.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                    <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Reduplicative adjective rule
-                    </h4>
-                    <p className="mt-3 text-sm leading-7 text-slate-600">
-                      The stemmer includes a conservative surface rule for adjective-like
-                      reduplication. Forms like <code>ቀጫጭን</code>, <code>ረጃጅም</code>,
-                      and <code>ትላልቅ</code> are reduced to their base adjective before
-                      later affix stripping can damage them.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-6 flex">
+           
 
               <div className="rounded-[1.75rem] border border-slate-200 bg-white px-5 py-5">
                 <h3 className="text-lg font-semibold text-slate-950">Stemmer rules</h3>

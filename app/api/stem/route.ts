@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     results: stemText(body.text, options),
     meta: {
-      algorithm: "Level 2 Simplified Alemayehu-Style Amharic Light Stemmer",
+      algorithm: "Simplified Amharic Light Stemmer",
       features: [
         "normalization",
         "prefix stripping",
